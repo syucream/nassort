@@ -1,0 +1,6 @@
+-
+  dst: moved
+  src:
+    - contains:
+      - target
+
