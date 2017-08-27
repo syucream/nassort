@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/text/unicode/norm"
@@ -19,6 +20,25 @@ type NassortDefinition struct {
 type SourceCondition struct {
 	Contains []string
 	// TODO support regexp condition
+}
+
+func Scan(srcDirPath string) ([]string, error) {
+	var paths []string
+
+	err := filepath.Walk(srcDirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip root dir and files
+		if path != srcDirPath && info.IsDir() {
+			paths = append(paths, path)
+		}
+
+		return nil
+	})
+
+	return paths, err
 }
 
 func (defs NassortDefinition) judgeConditions(filename string) bool {
@@ -50,7 +70,8 @@ func main() {
 
 	flag.Parse()
 
-	srcFilePaths, err := ioutil.ReadDir(*srcDirPath)
+	// srcFilePaths, err := ioutil.ReadDir(*srcDirPath)
+	srcFilePaths, err := Scan(*srcDirPath)
 	if err != nil {
 		fmt.Println("cannot read the src directory: " + *srcDirPath)
 		os.Exit(1)
@@ -67,16 +88,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	for _, fileInfo := range srcFilePaths {
-		for _, def := range defs {
-			filename := fileInfo.Name()
-
+	for _, def := range defs {
+		for _, path := range srcFilePaths {
 			// NOTE denormalize a filename normalized by UTF-8-MAC
 			// see also http://blog.sarabande.jp/post/89636452673
-			buf := []byte(filename)
-			filename = string(norm.NFC.Bytes(buf))
+			buf := []byte(path)
+			path = string(norm.NFC.Bytes(buf))
 
-			if matched := def.judgeConditions(filename); matched {
+			if matched := def.judgeConditions(path); matched {
 				dstPath := *dstDirPath + def.Dst
 
 				if err := os.MkdirAll(dstPath, 0755); err != nil {
@@ -84,10 +103,9 @@ func main() {
 					os.Exit(1)
 				}
 
-				origPath := *srcDirPath + filename
-				movedPath := dstPath + "/" + filename
-				if err := os.Rename(origPath, movedPath); err != nil {
-					fmt.Println("Skip moving %s to %s", origPath, movedPath)
+				movedPath := strings.Replace(dstPath+"/"+path, *srcDirPath, "", 1)
+				if err := os.Rename(path, movedPath); err != nil {
+					fmt.Println("Skip moving %s to %s", path, movedPath)
 				}
 			}
 		}
