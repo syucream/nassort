@@ -105,7 +105,7 @@ func main() {
 
 				movedPath := dstPath + "/" + strings.Replace(path, *srcDirPath, "", 1)
 				if err := os.Rename(path, movedPath); err != nil {
-					fmt.Println("Skip moving %s to %s", path, movedPath)
+					fmt.Printf("Skip moving %s to %s\n", path, movedPath)
 				}
 			}
 		}
