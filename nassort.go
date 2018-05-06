@@ -68,6 +68,8 @@ func main() {
 	dstDirPath := flag.String("dst", ".", "dst directory")
 	defsPath := flag.String("f", "nassort.yaml", "nassort config file(only yaml supported)")
 
+	dedup := flag.Bool("dedup", false, "remove src files if the file exists")
+
 	flag.Parse()
 
 	// srcFilePaths, err := ioutil.ReadDir(*srcDirPath)
@@ -105,7 +107,13 @@ func main() {
 
 				movedPath := dstPath + "/" + strings.Replace(path, *srcDirPath, "", 1)
 				if err := os.Rename(path, movedPath); err != nil {
-					fmt.Printf("Skip moving %s to %s because of %v\n", path, movedPath, err)
+					if *dedup && os.IsExist(err) {
+						if err := os.RemoveAll(path); err != nil {
+							fmt.Printf("Failed to attempt removing src dir because of %v\n", err)
+						}
+					} else {
+						fmt.Printf("Skip moving %s to %s, because of %v\n", path, movedPath, err)
+					}
 				}
 			}
 		}
