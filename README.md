@@ -2,6 +2,12 @@
 
 A natural directory assorter
 
+## Installation
+
+```
+$ go get -u github.com/syucream/nassort
+```
+
 ## Usage
 
 * Write definitions in yaml file.
